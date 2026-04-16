@@ -23,7 +23,7 @@ ENTRADAS DO BLOCO:
 /***********************************************************************************************/
 
 EXEMPLO DO BLOCO CONFIGURADO:
-
+<img src="images/exemplo_codigo_arquivos.png" alt="CHAMADA DO FUNCTION BLOCK" width="200">
 
 CODIGOS DE ERRO:
   
