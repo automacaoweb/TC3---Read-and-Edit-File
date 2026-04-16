@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="MAIN" Id="{8e9ff765-9723-4021-8d6a-9e1f73b0e85c}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+fbEditLineInFile : FB_EditLineInFile;
+   
+    sFilePath    : STRING := 'C:\recipe\Receita01.txt';
+    sNewText     : STRING(255) := 'LINHA 50 ATUALIZADA$R$N';
+	bStart: BOOL;
+	nErrorId: UDINT;
+	bError: BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbEditLineInFile(
+	sFilePath:= sFilePath, 
+	nLineToEdit:= 10, 
+	sNewContent:= sNewText, 
+	bStart:= bStart, 
+	bDone=> , 
+	bBusy=> , 
+	bError=> bError, 
+	nErrorId=> nErrorId);]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,176 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_EditLineInFile" Id="{03790559-065e-46e8-8366-c5260d95050f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_EditLineInFile
+VAR_INPUT
+    sFilePath : T_MaxString;
+    nLineToEdit : INT := 10;
+    sNewContent : STRING(255);
+    bStart : BOOL;
+END_VAR
+
+VAR_OUTPUT
+    bDone : BOOL;
+    bBusy : BOOL;
+    bError : BOOL;
+    nErrorId : UDINT;
+END_VAR
+
+VAR
+    fbOpen     : FB_FileOpen;
+    fbRead     : FB_FileGets;
+    fbWrite    : FB_FilePuts;
+    fbClose    : FB_FileClose;
+
+    hFile      : UINT;
+    arrLines   : ARRAY[1..100] OF STRING(255);
+
+    i          : INT;
+    state      : INT := 0;
+    tTimeout   : TON;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Timeout padrão: 10S
+tTimeout(IN := bBusy, PT := T#10S);
+
+CASE state OF
+
+0: // IDLE
+    bDone := FALSE;
+    bError := FALSE;
+    IF bStart THEN
+        bBusy := TRUE;
+        // Opcional: MEMSET(ADR(arrLines), 0, SIZEOF(arrLines)); // Limpa array antes de começar
+        state := 10;
+    END_IF
+
+10:
+    fbOpen(
+        sNetId := '',
+        sPathName := sFilePath,
+        nMode := FOPEN_MODEREAD,
+        ePath := PATH_GENERIC,
+        bExecute := TRUE
+    );
+ // Espera abertura
+    IF NOT fbOpen.bBusy THEN
+        IF fbOpen.bError THEN
+            nErrorId := fbOpen.nErrId;
+            state := 900;
+        ELSE
+            hFile := fbOpen.hFile;
+            i := 1;
+            state := 20;
+        END_IF
+        fbOpen(bExecute := FALSE); // Reset do bloco
+    END_IF
+
+20: // READ LOOP
+    IF i <= 100 THEN
+        fbRead(hFile:=hFile, bExecute:=TRUE); // fbRead deve ser FB_FileGets
+        state := 21;
+    ELSE
+        state := 30;
+    END_IF
+
+21: // Espera leitura
+    fbRead(bExecute:=FALSE); // fbRead deve ser FB_FileGets
+    IF NOT fbRead.bBusy THEN
+        IF fbRead.bError OR fbRead.bEOF THEN
+            state := 30; // Fim do arquivo ou erro
+        ELSE
+            arrLines[i] := fbRead.sLine;
+            i := i + 1;
+            fbRead(bExecute := FALSE); // ESSENCIAL para o próximo ciclo
+            state := 20;
+        END_IF
+    END_IF
+
+30: // CLOSE READ
+    fbClose(hFile:=hFile, bExecute:=TRUE);
+
+    IF NOT fbClose.bBusy THEN
+        fbClose(bExecute := FALSE);
+        state := 40;
+    END_IF
+
+40: // MODIFY
+    IF nLineToEdit >= 1 AND nLineToEdit <= 100 THEN
+        arrLines[nLineToEdit] := sNewContent;
+        i := 1;
+        state := 50;
+    ELSE
+        nErrorId := 16#0001; 
+        state := 900;
+    END_IF
+
+50: // OPEN WRITE (Modo WRITE apaga o arquivo anterior e cria um novo)
+    fbOpen(sNetId:='', sPathName:=sFilePath, nMode:=FOPEN_MODEWRITE, bExecute:=TRUE);
+    state := 51;
+
+51:
+    IF NOT fbOpen.bBusy THEN
+        IF fbOpen.bError THEN
+            nErrorId := fbOpen.nErrId;
+            state := 900;
+        ELSE
+            hFile := fbOpen.hFile;
+            state := 60;
+        END_IF
+        fbOpen(bExecute := FALSE);
+    END_IF
+
+60: // WRITE LOOP
+    IF i <= 100 AND arrLines[i] <> '' THEN
+        // ADICIONAR QUEBRA DE LINHA: Se a string não tiver $R$N, ela grudará na próxima
+        fbWrite(hFile:=hFile, sLine:= CONCAT(arrLines[i], '$R$N'), bExecute:=TRUE);
+        state := 61;
+    ELSE
+        state := 70;
+    END_IF
+
+61: // Espera escrita
+    IF NOT fbWrite.bBusy THEN
+        IF fbWrite.bError THEN
+            nErrorId := fbWrite.nErrId;
+            state := 900;
+        ELSE
+            i := i + 1;
+            fbWrite(bExecute := FALSE); // ESSENCIAL para a próxima linha
+            state := 60;
+        END_IF
+    END_IF
+
+70: // CLOSE WRITE
+    fbClose(hFile:=hFile, bExecute:=TRUE);
+    state := 71;
+
+71:
+    IF NOT fbClose.bBusy THEN
+        fbClose(bExecute := FALSE);
+        state := 100;
+    END_IF
+
+100: // DONE
+    bBusy := FALSE;
+    bDone := TRUE;
+    state := 0;
+
+900: // ERROR
+    bBusy := FALSE;
+    bError := TRUE;
+    fbOpen(bExecute := FALSE); // Garante reset dos blocos em erro
+    fbRead(bExecute := FALSE);
+    fbWrite(bExecute := FALSE);
+    fbClose(bExecute := FALSE);
+    state := 0;
+
+END_CASE
+
+IF tTimeout.Q THEN
+    nErrorId := 16#FFFF;
+    state := 900;
+END_IF]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
