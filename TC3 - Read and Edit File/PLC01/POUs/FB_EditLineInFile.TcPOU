@@ -28,6 +28,7 @@ VAR
     i          : INT;
     state      : INT := 0;
     tTimeout   : TON;
+	fbPulso : R_TRIG ;
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[// Timeout padrão: 10S
@@ -38,7 +39,9 @@ CASE state OF
 0: // IDLE
     bDone := FALSE;
     bError := FALSE;
-    IF bStart THEN
+	fbPulso(CLK:= bStart, Q=> );
+
+    IF fbPulso.Q THEN
         bBusy := TRUE;
         // Opcional: MEMSET(ADR(arrLines), 0, SIZEOF(arrLines)); // Limpa array antes de começar
         state := 10;
@@ -106,9 +109,7 @@ CASE state OF
 
 50: // OPEN WRITE (Modo WRITE apaga o arquivo anterior e cria um novo)
     fbOpen(sNetId:='', sPathName:=sFilePath, nMode:=FOPEN_MODEWRITE, bExecute:=TRUE);
-    state := 51;
 
-51:
     IF NOT fbOpen.bBusy THEN
         IF fbOpen.bError THEN
             nErrorId := fbOpen.nErrId;
@@ -130,6 +131,7 @@ CASE state OF
     END_IF
 
 61: // Espera escrita
+    fbWrite(bExecute:=FALSE);
     IF NOT fbWrite.bBusy THEN
         IF fbWrite.bError THEN
             nErrorId := fbWrite.nErrId;
