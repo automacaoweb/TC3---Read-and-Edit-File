@@ -25,5 +25,5 @@ ENTRADAS DO BLOCO:
 
 CODIGOS DE ERRO:
   
-
-![Uploading image.png…]()
+IMAGEM DO ARQUIVO EDITADO NA LINHA 10:
+<img src="assets/logo.png" alt="Texto Alternativo" width="200">
