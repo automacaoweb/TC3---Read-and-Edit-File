@@ -19,11 +19,14 @@ ENTRADAS DO BLOCO:
 - bError     : BIT DE ERRO
 
 - nErrorId   : CODIGO DO ERRO
+  
+/***********************************************************************************************/
 
-
+EXEMPLO DO BLOCO CONFIGURADO:
 
 
 CODIGOS DE ERRO:
   
 IMAGEM DO ARQUIVO EDITADO NA LINHA 10:
-<img src="assets/logo.png" alt="Texto Alternativo" width="200">
+
+<img src="images/notepad.png" alt="ARQUIVO EDITADO" width="200">
